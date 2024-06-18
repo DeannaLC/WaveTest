@@ -1,0 +1,336 @@
+<html> 
+  <head>
+    <title>Hello World</title> 
+  </head>
+
+  <body> 
+    <h1>Wave Quiz</h1>
+    <div id="config">
+        <h2>Configure</h2>
+        <p>Lower Note Bound</p>
+        <input type="range" id="minSlider" min=21 max=107 value=21 oninput="rangeUpdate()">
+        <p id="lowerVal"></p>
+        <p>Upper Note Bound</p>
+        <input type="range" id="maxSlider" min=21 max=107 value=107 oninput="rangeUpdate()">
+        <p id="upperVal"></p>
+        <input type="checkbox" id="sineCheck" checked> Sine
+        <input type="checkbox" id="sawtoothCheck" checked> Sawtooth
+        <input type="checkbox" id="squareCheck" checked> Square
+        <input type="checkbox" id="triangleCheck" checked> Triangle
+        <br>
+        <br>
+        <button onclick="resetScore()">Reset scores</button>
+        <p id="scoreConf"></p>
+        <button onclick="setRange()">Submit</button>
+        <p id="warning"></p>
+        <p id="waveWarning"></p>
+    </div>
+
+    <div hidden id="questions">
+      <button onclick="configButton()">Config</button>
+      <p id="answers"></p>
+      <p id="addButton"></p>
+      <p id="newSoundButton">
+        <button onclick="newSound()">Make a new sound</button>
+      </p>
+
+      <br>
+      <input type="range" id="rangeSlider" oninput="volumeFunc()" min="0" max="1" value="0.5" step="0.01" class="slider" id="myRange">
+      <div id="sliderVal">0.5</div>
+      <div id="choices">
+      </div>
+      <p id="submitButton"></p>
+      <p id="replace"></p>
+  </div>
+  </body>
+
+  <script>
+    let total = 0;
+    let correct = 0;
+    let ans;
+    const sounds = ["sine", "triangle", "square", "sawtooth"];
+    let sounds2 = [];
+    let ctxt = new (window.AudioContext ||  window.webkitAudioContext)();
+    let osc = ctxt.createOscillator();
+    let generating = false;
+    let generatingTwo = false;
+    const wave = new Object();
+    const wave1 = new Object();
+    const wave2 = new Object();
+    let lowerBound = 21;
+    let upperBound = 107;
+    let volu = 0.5;
+    /**let noteMap = new Map([
+      [21, "A0"],
+      [22, "B-0"],
+      [23, "B0"],
+      [24, "C1"],
+      [25, "D-1"],
+      [26, "D1"],
+      [27, "E-1"],
+      [28, "E1"],
+      [29, "F1"],
+      [30, "G-1"],
+      [31, "G1"],
+      [32, "A-1"],
+      [33, "A1"],
+      [34, "B-1"],
+      [35, "B1"],
+      [36, "C2"],
+      [37, "D-2"],
+      [38, "D2"],
+      [39, "E-2"],
+      [40, "E2"],
+      [41, "F2"],
+      [42, "G-2"],
+      [43, "G2"],
+      [44, "A-2"],
+      [45, "A2"],
+      [46, "B-2"]
+      [47, "B2"],
+      [48, "C3"],
+      [49, "D-3"],
+      [50, "D3"],
+      [51, "E-3"],
+      [52, "E3"],
+      [53, "F3"],
+      [54, "G-3"],
+      [55, "G3"],
+      [56, "A-3"],
+      [57, "A3"],
+      [58, "B-3"],
+      [59, "B3"],
+      [60, "C4"],
+      [61, "D-4"],
+      [62, "D4"],
+      [63, "E-4"],
+      [64, "E4"],
+      [65, "F4"],
+      [66, "G-4"],
+      [67, "G4"],
+      [68, "A-4"],
+      [69, "A4"],
+      [70, "B-4"],
+      [71, "B4"],
+      [72, "C5"],
+      [73, "D-5"],
+      [74, "D5"],
+      [75, "E-5"],
+      [76, "E5"],
+      [77, "F5"],
+      [78, "G-5"],
+      [79, "G5"],
+      [80, "A-5"],
+      [81, "A5"],
+      [82, "B-5"],
+      [83, "B5"],
+      [84, "C6"],
+      [85, "D-6"],
+      [86, "D6"],
+      [87, "E-6"],
+      [88, "E6"],
+      [89, "F6"],
+      [90, "G-6"],
+      [91, "G6"],
+      [92, "A-6"],
+      [93, "A6"],
+      [94, "B-6"],
+      [95, "B6"],
+      [96, "C7"],
+      [97, "D-7"],
+      [98, "D7"],
+      [99, "E-7"],
+      [100, "E7"],
+      [101, "F7"],
+      [102, "G-7"],
+      [103, "G7"],
+      [104, "A-7"],
+      [105, "A7"],
+      [106, "B-7"],
+      [107, "B7"]
+    ]);**/
+
+    function configButton(){
+      document.getElementById("scoreConf").innerHTML = "";
+      document.getElementById("warning").innerHTML = "";
+      document.getElementById("replace").innerHTML = "";
+      document.getElementById("config").hidden = false;
+      document.getElementById("questions").hidden = true;
+    }
+
+    function generateSound(){
+      let osc = ctxt.createOscillator();
+      let sndType = sounds[Math.floor(Math.random() * sounds.length)]
+      console.log(sndType);
+      osc.type = sndType;
+      let midiVal = (Math.floor(Math.random() * 87) + 21) - 67;
+      let tone = (2**(midiVal / 12)) * 440;
+      osc.frequency.value = tone;
+      osc.connect(ctxt.destination);
+      osc.start();
+      osc.stop(ctxt.currentTime + 2);
+    }
+
+    function rangeUpdate(){
+      document.getElementById("lowerVal").innerHTML = document.getElementById("minSlider").value;
+      document.getElementById("upperVal").innerHTML = document.getElementById("maxSlider").value;
+    }
+
+    function resetScore(){
+      document.getElementById("scoreConf").innerHTML = "Scores reset"
+      document.getElementById("answers").innerHTML = "";
+      total = 0;
+      correct = 0;
+    }
+
+    function generateSound2(){
+      let osc = ctxt.createOscillator();
+      let vol = ctxt.createGain();
+      if (!generating){
+        let sndType = sounds2[Math.floor(Math.random() * sounds2.length)]
+        let midiVal = (Math.floor(Math.random() * (upperBound - (lowerBound - 1))) + lowerBound);
+        let tone = (2**((midiVal - 69) / 12)) * 440;
+        wave.type = sndType;
+        wave.midiVal = midiVal;
+        wave.tone = tone;
+        generating = true;
+        document.getElementById("addButton").innerHTML = "<button onclick=\"generateSound2()\">Playback sound</button>";
+        generateChoices();
+        document.getElementById("submitButton").innerHTML = "<button onclick=\"correctWave()\">Submit</button>";
+        document.getElementById("newSoundButton").innerHTML = "";
+      }
+      osc.frequency.value = wave.tone;
+      osc.type = wave.type;
+      let volumeMod = 1;
+      if (wave.midiVal > 80 || wave.midiVal < 42){
+        volumeMod = volumeMod * 0.5;
+      }
+      if (wave.type.valueOf() == "sawtooth".valueOf() || wave.type.valueOf() == "square".valueOf()){
+        volumeMod = volumeMod * 0.5
+      }
+      vol.gain.value = volu * volumeMod;
+      osc.connect(vol);
+      vol.connect(ctxt.destination);
+      osc.start();
+      osc.stop(ctxt.currentTime + 2);
+    }
+
+    function generateChoices(){
+      //document.getElementById("choices").innerHTML = "<input type=\"radio\" name=\"wave\" value=\"sine\" id=\"sine\">Sine<input type=\"radio\" name=\"wave\" id=\"triangle\" value=\"triangle\">Triangle<input type=\"radio\" name=\"wave\" id=\"sawtooth\" value=\"sawtooth\">Sawtooth<input type=\"radio\" id=\"square\" name=\"wave\" value=\"square\">Square"
+      for (let i = 0; i < sounds2.length; i = i + 1){
+        let curWave = sounds2[i];
+        document.getElementById("choices").innerHTML = document.getElementById("choices").innerHTML + "<input type=\"radio\" name=\"wave\" value=\"" + curWave + "\" id=\"" + curWave + "\">" + curWave.substring(0, 1).toUpperCase() + curWave.substring(1);
+      }
+    }
+
+    function setRange(){
+      let tempMin = Number(document.getElementById("minSlider").value);
+      let tempMax = Number(document.getElementById("maxSlider").value);
+      let guard = setWaves();
+      if (tempMin > tempMax){
+        document.getElementById("warning").innerHTML = "min must be less than or equal to max";
+      }
+      else if (!guard){
+        document.getElementById("waveWarning").innerHTML = "must have 2+ waves selected";
+      }
+      else{
+        lowerBound = tempMin;
+        upperBound = tempMax;
+        document.getElementById("config").hidden = true;
+        document.getElementById("questions").hidden = false;
+      }
+    }
+
+    function setWaves(){
+      sounds2 = [];
+      if (document.getElementById("sineCheck").checked){
+        sounds2.push("sine");
+      }
+      if (document.getElementById("squareCheck").checked){
+        sounds2.push("square");
+      }
+      if (document.getElementById("triangleCheck").checked){
+        sounds2.push("triangle");
+      }
+      if (document.getElementById("sawtoothCheck").checked){
+        sounds2.push("sawtooth");
+      }
+      return sounds2.length > 1;
+    }
+
+    function correctWave(){
+      let correctAns = false;
+      for (let i = 0; i < sounds2.length; i = i + 1){
+        let curType = sounds2[i];
+        if (document.getElementById(curType).checked){
+          document.getElementById("replace").innerHTML = curType.substring(0, 1).toUpperCase() + curType.substring(1) + " was ";
+          if (curType.valueOf() == wave.type.valueOf()){
+            correctAns = true;
+          }
+          break;
+        }
+      }
+      if (correctAns){
+        correct = correct + 1;
+        document.getElementById("replace").innerHTML = document.getElementById("replace").innerHTML + "correct<br>";
+      }
+      else{
+        document.getElementById("replace").innerHTML = document.getElementById("replace").innerHTML + "incorrect<br>"
+      }
+      total = total + 1;
+      document.getElementById("choices").innerHTML = "";
+      document.getElementById("replace").innerHTML = document.getElementById("replace").innerHTML + "Wave: " + wave.type + " <br>Midi Value: " + wave.midiVal;
+      document.getElementById("submitButton").innerHTML = "";
+      document.getElementById("newSoundButton").innerHTML = "<button onclick=\"newSound()\">Make a new sound</button>"
+      document.getElementById("answers").innerHTML = correct + "/" + total;
+    }
+
+    function volumeFunc(){
+      let volVal = document.getElementById("rangeSlider").value;
+      volu = volVal;
+      document.getElementById("sliderVal").innerHTML = volu;
+    }
+
+    /**function generateTwoSounds(){
+      let osc1 = ctxt.createOscillator();
+      let osc2 = ctxt.createOscillator();
+      if (!generatingTwo){
+        let sndType1 = sounds[Math.floor(Math.random() * sounds.length)];
+        let sndType2 = sounds[Math.floor(Math.random() * sounds.length)];
+        let midiVal = (Math.floor(Math.random() * 87) + 21) - 67;
+        let tone = (2**(midiVal / 12)) * 440;
+        wave1.type = sndType1;
+        wave2.type = sndType2;
+        wave1.midiVal = midiVal;
+        wave2.midiVal = midiVal;
+        wave1.tone = tone;
+        wave2.tone = tone;
+        generatingTwo = true;
+      }
+      osc1.type = wave1.type;
+      osc1.frequency.value = wave1.tone;
+      osc2.type = wave2.type;
+      osc2.frequency.value = wave2.tone;
+      osc1.connect(ctxt.destination);
+      osc2.connect(ctxt.destination);
+      osc1.start();
+      osc2.start();
+      osc1.stop(ctxt.currentTime + 2);
+      osc2.stop(ctxt.currentTime + 2);
+    }
+
+    function twoNewSounds(){
+      generatingTwo = false;
+      generateTwoSounds();
+    }**/
+
+    function newSound(){
+      generating = false;
+      document.getElementById("replace").innerHTML = "";
+      generateSound2();
+    }
+
+
+  </script>
+
+</html>
